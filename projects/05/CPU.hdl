@@ -40,4 +40,55 @@ CHIP CPU {
 
     PARTS:
     // Put your code here:
+    
+    //option Code
+    Mux(a=false, b=true, sel=instruction[15], out=opCode);
+    
+    
+    //Mux16 1st
+    Mux16(b=OutputALU2, a[0..14]=instruction[0..14], a[15]=false, sel=instruction[15], out=OutputMux1);
+    
+    //A register
+    Not(in=instruction[5], out=loadARegister1);
+    And(a=loadARegister1, b=opCode, out=loadARegister2);
+    Not(in=loadARegister2, out=loadARegister);
+    ARegister(in=OutputMux1, load=loadARegister, out=OutputARegister1, out=OutputARegister2, out[0..14]=addressM);
+    
+    //Mux16 2nd
+    And(a=instruction[12], b=opCode, out=sel2Mux);
+    Mux16(a=OutputARegister1, b=inM, sel=sel2Mux, out=OutputMux2);
+    
+    //ALU
+    Mux(a=true, b=instruction[11], sel=opCode, out=zx1);
+    Mux(a=true, b=instruction[10], sel=opCode, out=nx1);
+    Mux(a=false, b=instruction[9], sel=opCode, out=zy1);
+    Mux(a=false, b=instruction[8], sel=opCode, out=ny1);
+    Mux(a=false, b=instruction[7], sel=opCode, out=f1);
+    Mux(a=false, b=instruction[6], sel=opCode, out=no1);
+    ALU(y=OutputMux2, x=OutputDRegister, zx=zx1, nx=nx1, zy=zy1, ny=ny1, f=f1, no=no1, out=OutputALU1, out=OutputALU2, out=outM, zr=zr, ng=ng);
+    
+    //D Register
+    And(a=instruction[4], b=opCode, out=loadDRegister);
+    DRegister(in=OutputALU1, load=loadDRegister, out=OutputDRegister);
+    
+    
+    //PC
+    Or(a=zr, b=ng, out=ps1);
+    Not(in=ps1, out=ps);
+    And(a=zr, b=instruction[1], out=PCload1);
+    And(a=ng, b=instruction[2], out=PCload2);
+    And(a=ps, b=instruction[0], out=PCload3);
+    Or(a=PCload1, b=PCload2, out=PCload4);
+    Or(a=PCload3, b=PCload4, out=PCload5);
+    Not(in=PCload, out=PCinc);
+    And(a=PCload5, b=opCode, out=PCload);
+    
+    PC(in=OutputARegister2, load=PCload, inc=PCinc, reset=reset, out[0..14]=pc, out[15]=false);
+    
+    //other
+    And(a=true, b=opCode, out=writeMb);
+    And(a=instruction[3], b=writeMb, out=writeM);
+    
+    
+    
 }
